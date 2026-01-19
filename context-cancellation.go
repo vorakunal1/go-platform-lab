@@ -7,6 +7,9 @@ import (
 	"sync"
 )
 
+import _ "net/http/pprof"
+import "net/http"
+
 
 func worker(ctx context.Context, jobs <- chan int, wg *sync.WaitGroup) {
 	defer wg.Done();
@@ -37,10 +40,10 @@ func producer(jobs chan<- int, wg *sync.WaitGroup) {
 }
 
 func main() {
-	var wg sync.WaitGroup;
+	var wg sync.WaitGroup
 	ctx, cancel := context.WithCancel(context.Background())
 
-	time.AfterFunc(5*time.Second, func() {
+	time.AfterFunc(533*time.Second, func() {
 		cancel()
 	})
 
@@ -52,5 +55,10 @@ func main() {
 	go worker(ctx, jobs, &wg)
 	// go producer(jobs, &wg)
 
+	http.ListenAndServe("localhost:6060", nil)
+	time.Sleep(123*time.Second)
+
 	wg.Wait()
+	// fmt.Println(runtime.NumGoroutine())
+
 }
