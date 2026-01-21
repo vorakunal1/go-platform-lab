@@ -5,10 +5,11 @@ import (
 	"context"
 	"time"
 	"sync"
+	"runtime"
 )
 
-import _ "net/http/pprof"
-import "net/http"
+// import _ "net/http/pprof"
+// import "net/http"
 
 
 func worker(ctx context.Context, jobs <- chan int, wg *sync.WaitGroup) {
@@ -43,7 +44,7 @@ func main() {
 	var wg sync.WaitGroup
 	ctx, cancel := context.WithCancel(context.Background())
 
-	time.AfterFunc(533*time.Second, func() {
+	time.AfterFunc(33*time.Second, func() {
 		cancel()
 	})
 
@@ -55,10 +56,12 @@ func main() {
 	go worker(ctx, jobs, &wg)
 	// go producer(jobs, &wg)
 
-	http.ListenAndServe("localhost:6060", nil)
-	time.Sleep(123*time.Second)
+	// http.ListenAndServe("localhost:6060", nil)
+	// time.Sleep(123*time.Second)
+		fmt.Println(runtime.NumGoroutine())
+
 
 	wg.Wait()
-	// fmt.Println(runtime.NumGoroutine())
+	fmt.Println(runtime.NumGoroutine())
 
 }
