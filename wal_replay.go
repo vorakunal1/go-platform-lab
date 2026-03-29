@@ -3,7 +3,6 @@ package main
 import (
     "encoding/binary"
     "encoding/json"
-    "path/filepath"
     "fmt"
     "hash/crc32"
     "io"
@@ -48,8 +47,19 @@ func (r *Replayer) Recover (applyFc func(lsn uint64, data []byte) error) ReplayR
         if err != nil {
             return ReplayResult{lastValidLSN, currentOffset, err}
         }
+        // fmt.Println("111111111", string(dataBuf))
+        //     fmt.Println("22222", lsn)
+        //     fmt.Println("33333", dataLen)
+        //     fmt.Println("44444", expectedCRC)
+        //     fmt.Println("5555", crc32.ChecksumIEEE(dataBuf))
 
         if crc32.ChecksumIEEE(dataBuf) != expectedCRC {
+            fmt.Println("111111111", string(dataBuf))
+            fmt.Println("22222", lsn)
+            fmt.Println("33333", dataLen)
+            fmt.Println("44444", expectedCRC)
+            fmt.Println("5555", crc32.ChecksumIEEE(dataBuf))
+
             return ReplayResult{lastValidLSN, currentOffset, fmt.Errorf("checksum mismatch")}
         }
 
@@ -67,9 +77,13 @@ func (r *Replayer) Recover (applyFc func(lsn uint64, data []byte) error) ReplayR
     return ReplayResult{lastValidLSN, currentOffset, nil}
 }
 
+type Checkpoint struct {
+	LastAppliedLSN uint64 `json:"last_applied_lsn"`
+}
+
 
 func SaveCheckpoint(path string, lsn uint64) error {
-    cp := Checkpoint{lastAppliedLSN: lsn}
+    cp := Checkpoint{LastAppliedLSN: lsn}
     data, err := json.Marshal(cp)
     if err != nil {
         return err
@@ -108,16 +122,16 @@ func loadCheckpoint(path string) uint64 {
 
     var cp Checkpoint
     json.Unmarshal(data, &cp)
-    return cp.lastAppliedLSN
+    return cp.LastAppliedLSN
 }
 
 
 func main() {
     walPath := "simulation.wal"
 
-    // f, _ := os.OpenFile(walPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+    // f, _ := os.OpenFile(walPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 
-    // for i := uint64(1); i<=13; i++ {
+    // for i := uint64(130); i<=1300; i++ {
     //     writeRecord(f, i, []byte(fmt.Sprintf("Data_%d", i)))
     // }
 
@@ -132,6 +146,7 @@ func main() {
 
     if result.Error != nil {
         fmt.Println("Stopped at LSn %d due to crash. Repairing...", result.LastValidLSN+1)
+        fmt.Println(result.Error)
 
         os.Truncate(walPath, result.LastValidOffset)
     }
@@ -143,8 +158,10 @@ func main() {
 
 
 func writeRecord(f *os.File, lsn uint64, data []byte) {
+    const OpUpdate uint32 = 2
     h := make([]byte, HeaderSize)
     binary.BigEndian.PutUint64(h[0:8], lsn)
+    binary.BigEndian.PutUint32(h[8:12], OpUpdate)
     binary.BigEndian.PutUint32(h[12:16], uint32(len(data)))
     binary.BigEndian.PutUint32(h[16:20], crc32.ChecksumIEEE(data))
     f.Write(h)

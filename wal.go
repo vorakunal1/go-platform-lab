@@ -61,7 +61,7 @@ func main() {
 	defer wal.file.Close()
 
 	var wg sync.WaitGroup
-	userCount := 5
+	userCount := 500000
 	const OpUpdate uint32 = 2
 
 	for i:=1; i<userCount; i++ {
